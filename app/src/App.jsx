@@ -26,7 +26,7 @@ class App extends Component {
     </select>
   }
   onTrackingStartClick() {
-    const {recording, startTime, secondsElapsed} = this.state;
+    const {recording, startTime} = this.state;
     if(recording) {
       clearInterval(this.interval)
       const now = new Date()
