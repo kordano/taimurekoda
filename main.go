@@ -1,26 +1,45 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html"
 	"log"
 	"net/http"
-	"strconv"
-	"sync"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
-var counter int
-var mutex = &sync.Mutex{}
+type User struct {
+	id    int
+	email string
+}
+
+func connectDb() {
+	db, err := sql.Open("mysql", "root:go-rocks@tcp(127.0.0.1:3306)/sys")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	results, err := db.Query("SELECT id, email from users;")
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for results.Next() {
+		var user User
+		err = results.Scan(&user.id, &user.email)
+		if err != nil {
+			panic(err.Error())
+		}
+		log.Printf(user.email)
+	}
+}
 
 func echoString(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-}
-
-func incrementCounter(w http.ResponseWriter, r *http.Request) {
-	mutex.Lock()
-	counter++
-	fmt.Fprintf(w, strconv.Itoa(counter))
-	mutex.Unlock()
 }
 
 func serveStatic(w http.ResponseWriter, r *http.Request) {
@@ -28,9 +47,10 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	fmt.Printf("connecting to db")
+	connectDb()
 	fmt.Printf("Starting server")
 	http.HandleFunc("/", serveStatic)
-	http.HandleFunc("/increment", incrementCounter)
 	http.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "HI!")
 	})
